@@ -378,7 +378,7 @@ def signature(request):
 
 
         packet = io.BytesIO()
-        pdfmetrics.registerFont(TTFont('Roboto', f'{MEDIA_ROOT}\\roboto-regular.ttf'))
+        pdfmetrics.registerFont(TTFont('Roboto', f'{MEDIA_ROOT}\\Roboto-Regular.ttf'))
         can = canvas.Canvas(packet, pagesize=letter)
         can.setFont('Roboto', 12, 600)
 
