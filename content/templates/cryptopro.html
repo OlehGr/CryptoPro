@@ -1,0 +1,297 @@
+{% load static %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>CryptoPro</title>
+        <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/uikit/3.2.0/css/uikit.min.css' />
+		<script src='https://cdnjs.cloudflare.com/ajax/libs/uikit/3.2.0/js/uikit.min.js'></script>
+		<script src='https://www.cryptopro.ru/sites/default/files/products/cades/cadesplugin_api.js'></script>
+		<script src='https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.7.8/angular.min.js'></script>
+		<script src="{% static 'js/cryptohelper.js' %}"></script>
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+        <link rel="stylesheet" href="{% static '/css/style.css' %}">
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+        <body ng-app='App' class="ng-scope">
+            <header class="header work-header">
+                <div class="container">
+                    <a href="{% url 'main' %}">
+                        <div class="logo">
+                            <img src="{% static "img/logo.png" %}" alt="">
+                        </div>
+                    </a>
+
+                    <nav class="header__nav">
+                        {% if request.user.is_authenticated %}
+                       <div class="auth  auth-btn">
+                            <a href="{% url 'archive' %}"><i class="material-icons">person</i> Личный кабинет</a>
+                            <a href="{% url 'logout' %}">Выйти</a>
+                        </div>
+                        {% else %}
+                        <div class="auth auth-btn">
+                            <a href="{% url 'register' %}">Регистрация</a><a href="{% url 'login' %}">Авторизация</a>
+                        </div>
+                        {% endif %}
+                    </nav>
+                </div>
+            </header>
+
+		<script>
+			const app = angular.module('App', [], function($interpolateProvider) {
+                $interpolateProvider.startSymbol('[[');
+                $interpolateProvider.endSymbol(']]');
+            });
+
+			app.directive('customOnChange', () => {
+				return {
+					restrict: 'A',
+					link: (scope, element, attrs) => {
+						const onChangeHandler = scope.$eval(attrs.customOnChange);
+						element.on('change', onChangeHandler);
+						element.on('$destroy', () => {
+							element.off();
+						});
+					}
+				};
+			});
+
+			app.controller('Crypto', ($scope) => {
+
+				$scope.certs = [];
+				$scope.selectedCert = null;
+				$scope.signInfo = null;
+				$scope.data = 'Test data';
+				$scope.files = null;
+				$scope.sign = '';
+				$scope.pluginReady = false;
+                $scope.signature = null;
+                $scope.document = '';
+
+
+				let crypto = new CryptoHelper();
+
+				crypto.init().then(() => {
+					$scope.pluginReady = true;
+
+					crypto.getCertificates().then((certs) => {
+						$scope.certs = certs;
+						$scope.$digest();
+					});
+				});
+
+				$scope.doSign = (data, download = false) => {
+					crypto
+						.sign($scope.selectedCert.$original, data)
+						.then((signMessage) => {
+							$scope.sign = signMessage[0].sign;
+
+                            $scope.data = signMessage[0].data;
+
+                            const reader = new FileReader();
+
+
+                            reader.addEventListener("load", () => {
+                                // this will then display a text file
+                                $scope.document = reader.result
+                              }, false);
+                            reader.readAsText($scope.files[0])
+
+
+
+                            crypto.verify($scope.data, $scope.sign, false).then(
+                                (verifyResult) => {
+                                    if (verifyResult) {
+                                        console.log(verifyResult[0].cert.subject);
+
+                                        $scope.signature = JSON.stringify(verifyResult[0].cert.subject)
+
+                                        function getCookie(name) {
+                                            let cookies = document.cookie.split(';')
+                                            for (let i = 0; i < cookies.length; i++) {
+                                                let cookieName = cookies[i].split('=')[0].replace(' ', '')
+                                                let cookieData = cookies[i].split('=')[1].replace(' ', '')
+
+
+
+                                                if (cookieName == name) {
+                                                    return cookieData
+                                                }
+                                            }
+
+                                        }
+
+                                        let csrftoken = getCookie('csrftoken');
+
+
+                                        let formData = new FormData();
+                                        console.log($scope.signature)
+                                        formData.append('cert', $scope.signature);
+                                        formData.append('doc', $scope.files[0]);
+
+                                        console.log($scope.files[0])
+
+                                        axios.post('./sign', formData, {
+                                            headers: {
+                                              'X-CSRFToken': csrftoken
+                                            },
+                                        }).then(res => {
+                                            console.log(res)
+                                            console.log(window.location.hostname)
+
+                                            const doc = document.createElement('a')
+                                            console.log(location.protocol + '//' + location.host + res.data)
+                                            doc.href = location.protocol + '//' + location.host + res.data;
+					                        doc.download = 'sign.pdf';
+					                        document.body.appendChild(doc);
+					                        doc.click();
+					                        doc.remove();
+                                        })
+                                    }
+
+
+
+                                });
+
+
+							if (download) {
+								if (signMessage instanceof Array) {
+
+									signMessage.forEach((sign, i) => {
+										downloadData(signMessage[0].sign, `${$scope.files[i].name}.sig`, 'text/plain');
+									});
+								} else {
+
+									downloadData(signMessage[0].sign, `signature.sig`, 'text/plain');
+								}
+							}
+
+							$scope.$digest();
+						});
+				};
+
+				$scope.doVerify = () => {
+					crypto
+						.verify($scope.data, $scope.sign, false)
+						.then((verifyResult) => {
+							if (verifyResult) {
+								$scope.signInfo = verifyResult;
+								$scope.$digest();
+							}
+						});
+				};
+
+				$scope.openFile = ($event) => {
+					$scope.files = $event.target.files;
+					$scope.$digest();
+				};
+
+				function downloadData(data, name, type) {
+					const file = new Blob([data], { type });
+					const link = document.createElement('a');
+					link.href = URL.createObjectURL(file);
+					link.download = name;
+					document.body.appendChild(link);
+					link.click();
+					link.remove();
+				}
+
+			});
+		</script>
+	</head>
+		<div ng-controller='Crypto' class='uk-text-small'>
+
+			<form class='uk-form-horizontal' method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+
+                         <div class="container container--center">
+                             <div class="wrapper-grid">
+
+                                 <div class='alert-area'>
+                                     <div ng-if='pluginReady' class='uk-alert-success alert alert-success'>
+                                         Сервис готов к работе
+                                     </div>
+                                     <div ng-if='!pluginReady' class='uk-alert-danger alert alert-danger'>
+                                         Активируйте плагин
+                                     </div>
+                                </div>
+
+                                 <div class='cert-area'>
+                                     <h3 class='cert-label'>Выберите сертификат</h3>
+
+                                     <select class='form-select form-select-sm mb-3' ng-model='selectedCert'>
+                                             <option ng-repeat='cert in certs' ng-value='cert'>[[ cert.subject.name ]]</option>
+                                     </select>
+
+                                     <ul class='uk-list'>
+                                         <li ng-repeat='(k, v) in selectedCert.subject'>
+                                                 <span class='uk-text-bold naming'>[[k]]:</span>
+                                                 <span>[[v]]</span>
+                                         </li>
+                                     </ul>
+
+                                 </div>
+
+
+                                 <div class='file-area'>
+                                     <h3 class='cert-label'>Подписание файлов</h3>
+
+
+                                     <div class="upload upload--gost" >
+                                         <div class="form-group">
+                                           <label class="label" for="selectFileInput">
+                                             <i class="material-icons">file_copy</i>
+                                             <span class="title">Выберите документ</span>
+
+                                               <input ng-model='data' id='selectFileInput' type='file' name="doc" custom-on-change='openFile' multiple>
+
+
+                                           </label>
+
+                                         </div>
+                                     </div>
+
+                                     <span ng-if="files" class="doc-name">[[files[0].name]]</span>
+                                     <span ng-if="!files" class="doc-name">Выберите документ</span>
+
+
+                                     <button class='uk-button uk-button-primary' type="submit" ng-click='doSign(files, true)' ng-disabled='!selectedCert || !files'>Подписать</button>
+                                 </div>
+
+                                 <div class='signature-area'>
+                                     <h3 class='cert-label'><i class="material-icons">workspace_premium</i></h3>
+
+                                     <textarea class='form-control form-textarea' ng-model='sign'></textarea>
+                                 </div>
+
+
+
+                                <div class='check-area'>
+                                    <button class='uk-button uk-button-secondary' ng-disabled="!sign" ng-click='doVerify()'>Проверить</button>
+
+                                    <ul class='uk-list'>
+                                        <li ng-repeat='sign in signInfo'>
+                                            <span class='uk-text-bold'>[[sign.ts]]:</span>
+                                            <span>[[sign.cert.subject.name]]</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+
+                             </div>
+
+                         </div>
+
+            </form>
+
+
+		</div>
+	</body>
+</html>
+
+{% endblock %}
