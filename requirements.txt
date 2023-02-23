@@ -42,3 +42,4 @@ urllib3
 Werkzeug
 wheel
 yarl
+gunicorn

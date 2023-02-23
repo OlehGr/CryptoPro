@@ -374,15 +374,19 @@ def signature(request):
 
 
 
-
-
-
         packet = io.BytesIO()
         pdfmetrics.registerFont(TTFont('Roboto', f'{MEDIA_ROOT}\\Roboto-Regular.ttf'))
         can = canvas.Canvas(packet, pagesize=letter)
         can.setFont('Roboto', 12, 600)
 
-        can.drawString(10, 50, f"Имя: {cert['name']}")
+        can.setFillColorRGB(1, 1, 1)
+        can.setFillAlpha(.6)
+        can.rect(0, 0, 300, 70, fill=1, stroke=0)
+
+        can.setFillColorRGB(0, 0, 0)
+        can.setFillAlpha(1)
+
+        can.drawString(10, 50, f"Имя: {cert['name']}", )
         can.drawString(10, 38, f"Логин: {cert['email']}")
         can.drawString(10, 26, f"Компания: {cert['company']}")
         can.drawString(10, 14, f"Город: {cert['city']}")
