@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    command: >
+      sh -c "
+            python manage.py  collectstatic --noinput &&
+            gunicorn --bind 0.0.0.0:8000 cryptovvb.wsgi"
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+  nginx:
+    build: ./nginx
+    container_name: nginx
+    links:
+      - app
+    depends_on:
+      - app
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+      - "443:443"
+
+
+volumes:
+  media_volume:
+  static_volume:

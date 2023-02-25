@@ -3,7 +3,7 @@ import json
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-from cryptovvb.settings import MEDIA_URL, MEDIA_ROOT
+from cryptovvb.settings import MEDIA_URL, MEDIA_ROOT, STATIC_ROOT
 from coreapi.compat import force_text
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import EmailMessage
@@ -59,9 +59,10 @@ def register(request):
             form.save()
 
             # генерации пары ключей user1
-
+            print(user)
             privatekey = RSA.generate(2048)
             filename = MEDIA_ROOT + f'\\key_user\\' + user.username + '\\' + user.username + '_privatekey.rem'
+            print(filename)
             os.makedirs(os.path.dirname(filename), exist_ok=True)
             f = open(filename, 'wb')
             f.write(bytes(privatekey.exportKey('PEM')))
@@ -369,13 +370,15 @@ def signature(request):
         doc = request.FILES['doc']
 
         print(cert['name'])
-        if(not(os.path.exists(f"{MEDIA_ROOT}\\{doc}"))):
+
+        if os.path.exists(f"{MEDIA_ROOT}/{doc}"):
+            os.remove(f"{MEDIA_ROOT}/{doc}")
+            FilesServ.objects.create(doc=doc, file_serv=MEDIA_ROOT)
+        else:
             FilesServ.objects.create(doc=doc, file_serv=MEDIA_ROOT)
 
-
-
         packet = io.BytesIO()
-        pdfmetrics.registerFont(TTFont('Roboto', f'{MEDIA_ROOT}\\Roboto-Regular.ttf'))
+        pdfmetrics.registerFont(TTFont('Roboto', f'{STATIC_ROOT}/font/Roboto-Regular.ttf'))
         can = canvas.Canvas(packet, pagesize=letter)
         can.setFont('Roboto', 12, 600)
 
@@ -399,7 +402,7 @@ def signature(request):
         # create a new PDF with Reportlab
         new_pdf = PdfFileReader(packet)
         # read your existing PDF
-        existing_pdf = PdfFileReader(open(f'{MEDIA_ROOT}\\{doc}', "rb"))
+        existing_pdf = PdfFileReader(open(f'{MEDIA_ROOT}/{doc}', "rb"))
         output = PdfFileWriter()
         # add the "watermark" (which is the new pdf) on the existing page
         i = 0
@@ -408,9 +411,9 @@ def signature(request):
             output.addPage(page)
             i+1
         # finally, write "output" to a real file
-        if (os.path.exists(f"{MEDIA_ROOT}\\signed-{doc}")):
-            os.remove(f"{MEDIA_ROOT}\\signed-{doc}")
-        outputStream = open(f"{MEDIA_ROOT}\\signed-{doc}", 'wb')
+        if (os.path.exists(f"{MEDIA_ROOT}/signed-{doc}")):
+            os.remove(f"{MEDIA_ROOT}/signed-{doc}")
+        outputStream = open(f"{MEDIA_ROOT}/signed-{doc}", 'wb')
         output.write(outputStream)
         outputStream.close()
 

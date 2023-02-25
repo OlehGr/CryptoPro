@@ -27,12 +27,15 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = "vvbcommand@gmail.com"
+EMAIL_HOST_USER = "example@gmail.com"
 EMAIL_HOST_PASSWORD = "xpsrjlvbftcijhps"
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -119,15 +122,17 @@ USE_I18N = True
 USE_TZ = True
 
 
-STATIC_ROOT = os.path.join(CONTENT_DIR, 'static')
 STATIC_URL = '/static/'
+STATIC_ROOT = 'static'
 
-MEDIA_ROOT = os.path.join(CONTENT_DIR, 'media')
+MEDIA_ROOT = 'media'
 MEDIA_URL = '/media/'
 
 STATICFILES_DIRS = [
     os.path.join(CONTENT_DIR, 'assets'),
 ]
+
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
