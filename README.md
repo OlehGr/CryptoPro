@@ -1,9 +1,9 @@
 # Сайт для подписи документов с помощбю ЭЦП
 
 ### Запуск репозитория
-`git clone https://github.com/OlehGr/cryptopro.git`
-`cd cryptopro`
-`docker compose up --build`
+`git clone https://github.com/OlehGr/cryptopro.git` <br />
+`cd cryptopro` <br />
+`docker compose up --build` <br />
 
 ## КриптоПро
 *Перед началом работы убедитесб, что у вас есть расщирение для браузера от КриптоПро и криптопровайдер с действующей лицензией - https://www.cryptopro.ru/products/cades/plugin*
